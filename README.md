@@ -1,59 +1,232 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PHP_Laravel12_LoadMore_On_Scroll
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This documentation explains how to build a **Load More on Scroll** feature in Laravel 12 using Livewire.  
+It follows the same structure as the provided document, with added explanations for better understanding.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Step 1: Install Laravel 12
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Run the following command to install a new Laravel 12 project:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```
+composer create-project --prefer-dist laravel/laravel blog
+```
 
-## Learning Laravel
+**Explanation:**  
+This command downloads a fresh Laravel application in a folder named **blog**.  
+You will work inside this project for the entire setup.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Step 2: Create Dummy Records using Tinker & Factory
 
-## Laravel Sponsors
+Open Tinker:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```
+php artisan tinker
+```
 
-### Premium Partners
+Generate 100 dummy users:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```
+User::factory()->count(100)->create()
+```
 
-## Contributing
+**Explanation:**  
+Livewire Load More requires a list of users.  
+Using a factory automatically inserts 100 fake users into the database, so you can test infinite scrolling easily.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## Step 3: Install Livewire
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Install Livewire into the Laravel project:
 
-## Security Vulnerabilities
+```
+composer require livewire/livewire
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+**Explanation:**  
+Livewire allows building dynamic components without writing JavaScript.  
+This package will provide reactive UI updates for the Load More feature.
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Step 4: Create Livewire Component
+
+Run:
+
+```
+php artisan make:livewire load-more-user
+```
+
+This creates two files:
+
+```
+app/Http/Livewire/LoadMoreUser.php
+resources/views/livewire/load-more-user.blade.php
+```
+
+These files will handle backend logic and frontend display.
+
+---
+
+## Update Livewire Component Logic
+
+### File: `app/Http/Livewire/LoadMoreUser.php`
+
+```php
+<?php
+
+namespace App\Livewire;
+
+use Livewire\Component;
+use App\Models\User;
+
+class LoadMoreUser extends Component
+{
+    // Number of users to show initially
+    public $perPage = 15;
+
+    // Method to increase number of displayed users
+    public function loadMore()
+    {
+        $this->perPage += 5; // Load 5 more users on each call
+    }
+
+    // Render the component with user list
+    public function render()
+    {
+        // Latest users with pagination
+        $users = User::latest()->paginate($this->perPage);
+
+        // Return view with user data
+        return view('livewire.load-more-user', compact('users'));
+    }
+}
+```
+
+**Explanation:**  
+- `$perPage` controls how many users appear initially.  
+- `loadMore()` increases the user count when scroll reaches bottom.  
+- `render()` returns users using pagination with Livewire reactivity.
+
+---
+
+## Step 4 (Frontend): Update Blade Template
+
+### File: `resources/views/livewire/load-more-user.blade.php`
+
+```html
+<div>
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach($users as $user)
+                <tr>
+                    <td>{{ $user->id }}</td> <!-- User ID -->
+                    <td>{{ $user->name }}</td> <!-- User Name -->
+                    <td>{{ $user->email }}</td> <!-- User Email -->
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+```
+
+**Explanation:**  
+This table simply displays the paginated user records passed from the component.
+
+---
+
+## Step 5: Create Route
+
+File: `routes/web.php`
+
+```php
+Route::get('load-more-user', function () {
+    return view('default');
+});
+```
+
+**Explanation:**  
+When visiting `/load-more-user`, Laravel will load the page containing the Livewire component.
+
+---
+
+## Step 6: Create Main View File
+
+### File: `resources/views/default.blade.php`
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Laravel 12 Livewire Load More on Scroll</title>
+
+    @livewireStyles  <!-- Livewire CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+
+<body>
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            Laravel 12 Livewire - Load More on Scroll
+        </div>
+
+        <div class="card-body">
+            @livewire('load-more-user') <!-- Load the component -->
+        </div>
+    </div>
+</div>
+
+@livewireScripts <!-- Livewire JS -->
+
+<script>
+    // Detect when user scrolls to the bottom and load more data
+    window.addEventListener('scroll', function() {
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight) {
+            Livewire.dispatch('load-more'); // Call loadMore() in Livewire
+        }
+    });
+</script>
+
+</body>
+</html>
+```
+
+**Explanation:**  
+- Livewire styles & scripts must be included for component functionality.  
+- JavaScript detects when the user scrolls to the bottom of the page.  
+- When bottom reached → triggers Livewire event → loads more users.
+
+---
+
+## Step 7: Run the Application
+
+Start server:
+
+```
+php artisan serve
+```
+
+Visit:
+
+```
+http://localhost:8000/load-more-user
+```
+
+<img width="1550" height="776" alt="image" src="https://github.com/user-attachments/assets/3dad19cd-f29c-4841-bb93-e2dd611b5e24" />
+
